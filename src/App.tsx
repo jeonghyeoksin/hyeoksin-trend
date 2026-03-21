@@ -52,8 +52,9 @@ export default function App() {
       setError('타겟 고객을 입력하거나 분석용 파일을 업로드해주세요.');
       return;
     }
-    if (!apiKey) {
-      setError('우측 상단에서 API Key를 설정해주세요.');
+    const cleanApiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
+    if (!cleanApiKey) {
+      setError('유효한 API Key를 입력해주세요. (영문/숫자)');
       setIsModalOpen(true);
       return;
     }
@@ -63,7 +64,7 @@ export default function App() {
     setOutput('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ apiKey: cleanApiKey });
       
       let prompt = `당신은 AI 비즈니스 및 마케팅 전략 최고 전문가입니다.\n`;
       
@@ -107,8 +108,9 @@ export default function App() {
           reader.readAsDataURL(selectedFile);
         });
         
-        let mimeType = selectedFile.type;
+        let mimeType = selectedFile.type.split(';')[0].replace(/[^\x20-\x7E]/g, '');
         if (selectedFile.name.endsWith('.md')) mimeType = 'text/plain';
+        if (selectedFile.name.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         if (!mimeType) mimeType = 'text/plain';
 
         parts.push({
