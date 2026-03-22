@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import mammoth from 'mammoth';
 import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download } from 'lucide-react';
 
 export default function App() {
@@ -24,6 +25,8 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [output, setOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -62,10 +65,15 @@ export default function App() {
     setError('');
     setIsGenerating(true);
     setOutput('');
+    setProgress(10);
+    setProgressMessage('분석 환경을 준비하고 있습니다...');
 
     try {
       const ai = new GoogleGenAI({ apiKey: cleanApiKey });
       
+      setProgress(25);
+      setProgressMessage('입력 데이터를 분석하고 프롬프트를 구성 중입니다...');
+
       let prompt = `당신은 AI 비즈니스 및 마케팅 전략 최고 전문가입니다.\n`;
       
       if (selectedFile) {
@@ -98,37 +106,67 @@ export default function App() {
 
       const parts: any[] = [];
       if (selectedFile) {
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result as string;
-            resolve(result.split(',')[1]);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(selectedFile);
-        });
-        
-        let mimeType = selectedFile.type.split(';')[0].replace(/[^\x20-\x7E]/g, '');
-        if (selectedFile.name.endsWith('.md')) mimeType = 'text/plain';
-        if (selectedFile.name.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        if (!mimeType) mimeType = 'text/plain';
+        setProgress(40);
+        setProgressMessage('파일 데이터를 분석하는 중입니다...');
 
-        parts.push({
-          inlineData: {
-            data: base64,
-            mimeType: mimeType
+        if (selectedFile.name.endsWith('.docx')) {
+          // Extract text from DOCX using mammoth
+          const arrayBuffer = await selectedFile.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          prompt += `\n\n[첨부 파일(${selectedFile.name}) 내용]:\n${result.value}\n`;
+        } else {
+          // Handle other supported text files as inlineData
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = reader.result as string;
+              if (result && result.includes(',')) {
+                resolve(result.split(',')[1]);
+              } else {
+                reject(new Error('파일을 읽는 데 실패했습니다.'));
+              }
+            };
+            reader.onerror = () => reject(new Error('파일 읽기 오류가 발생했습니다.'));
+            reader.readAsDataURL(selectedFile);
+          });
+          
+          let mimeType = (selectedFile.type || '').split(';')[0].replace(/[^\x20-\x7E]/g, '');
+          if (selectedFile.name.endsWith('.md')) mimeType = 'text/plain';
+          if (!mimeType) mimeType = 'text/plain';
+
+          // Only add as inlineData if it's a supported type (text/plain, text/markdown, etc.)
+          // Otherwise, just append as text to prompt to be safe
+          const supportedTypes = ['text/plain', 'text/markdown', 'application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
+          if (supportedTypes.includes(mimeType)) {
+            parts.push({
+              inlineData: {
+                data: base64,
+                mimeType: mimeType
+              }
+            });
+          } else {
+            // Fallback: try to read as text and append to prompt
+            const text = await selectedFile.text();
+            prompt += `\n\n[첨부 파일(${selectedFile.name}) 내용]:\n${text}\n`;
           }
-        });
+        }
       }
       parts.push({ text: prompt });
+
+      setProgress(60);
+      setProgressMessage('AI가 로드맵과 마케팅 전략을 생성하고 있습니다 (약 10~20초 소요)...');
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-pro-preview',
         contents: { parts },
       });
 
+      setProgress(90);
+      setProgressMessage('결과를 정리하고 있습니다...');
+
       if (response.text) {
         setOutput(response.text);
+        setProgress(100);
       } else {
         setError('결과를 생성하지 못했습니다. 다시 시도해주세요.');
       }
@@ -137,6 +175,10 @@ export default function App() {
       setError(err.message || '오류가 발생했습니다. API Key가 유효한지 확인해주세요.');
     } finally {
       setIsGenerating(false);
+      setTimeout(() => {
+        setProgress(0);
+        setProgressMessage('');
+      }, 500);
     }
   };
 
@@ -205,7 +247,7 @@ export default function App() {
       {/* Hero Section */}
       <section className="relative w-full aspect-video max-h-[400px] overflow-hidden bg-slate-900 flex items-center justify-center">
         <img 
-          src="https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=1920&auto=format&fit=crop" 
+          src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920&auto=format&fit=crop" 
           alt="AI Innovation Background" 
           className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
           referrerPolicy="no-referrer"
@@ -426,6 +468,25 @@ export default function App() {
                 </div>
                 <div className="prose prose-slate prose-indigo max-w-none prose-headings:font-bold prose-h3:text-lg prose-p:text-slate-600 prose-li:text-slate-600 whitespace-pre-wrap">
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{output}</ReactMarkdown>
+                </div>
+              </div>
+            ) : isGenerating ? (
+              <div className="h-full flex flex-col items-center justify-center py-20">
+                <div className="w-full max-w-md space-y-6">
+                  <div className="flex justify-between text-sm font-medium text-slate-600">
+                    <span>{progressMessage}</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                    <div 
+                      className="h-full bg-indigo-600 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(79,70,229,0.4)]"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 text-indigo-600 animate-pulse">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm font-semibold tracking-wide">혁신적인 전략을 설계하는 중입니다...</span>
+                  </div>
                 </div>
               </div>
             ) : (
