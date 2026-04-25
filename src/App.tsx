@@ -4,29 +4,59 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import mammoth from 'mammoth';
-import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download } from 'lucide-react';
+import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download, ShieldCheck, ClipboardList, Info } from 'lucide-react';
 
 export default function App() {
   const [apiKey, setApiKey] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCostModalOpen, setIsCostModalOpen] = useState(false);
+  const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAuthVerified, setIsAuthVerified] = useState(false);
   const [tempKey, setTempKey] = useState('');
+  const [tempAuthCode, setTempAuthCode] = useState('');
   
   // API Cost Tracking
   const [totalInputTokens, setTotalInputTokens] = useState(0);
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
   
+  const OPTIONS: any = {
+    aiTech: ["Gemini 1.5 Pro", "GPT-4o (OpenAI)", "Claude 3.5 Sonnet", "Perplexity AI", "오픈소스 LLM (Llama 3 등)", "기타"],
+    target: ["1인 지식 기업가", "소상공인 및 자영업자", "직장인 부업러", "2030 MZ세대", "실버 세대 (시니어)", "기타"],
+    platform: ["유튜브 (쇼츠 포함)", "인스타그램 / 틱톡", "네이버 블로그 / 카페", "개인 웹사이트 / 쇼핑몰", "뉴스레터 / 커뮤니티", "기타"],
+    bizModel: ["구독형 (SaaS/콘텐츠)", "광고 수익 (유튜브/블로그)", "지식 서비스 (전자책/강의)", "커머스 (위탁/사입)", "에이전시 / 서비스 대행", "기타"],
+    budget: ["0원 (무자본)", "100만원 이하 (소자본)", "500만원 이하", "1,000만원 이상", "투자 유치 희망", "기타"],
+    competency: ["마케팅 기획 및 홍보", "콘텐츠 제작 (영상/글)", "개발 및 기술적 지식", "영업 및 비즈니스 매너", "특별한 기술 없음 (입문자)", "기타"],
+    uniqueSellingPoint: ["압도적인 실행 속도", "전문적인 도메인 지식", "강력한 팬덤 / 퍼스널 브랜딩", "저렴한 가격 경쟁력", "독보적인 기술력", "기타"],
+    timeline: ["1개월", "3개월", "6개월", "1년", "1년 이상", "기타"]
+  };
+
+  const [manualFields, setManualFields] = useState<string[]>([]);
   const [formData, setFormData] = useState({
-    aiTech: '혁신AI',
-    target: '',
-    platform: '',
-    bizModel: '',
-    budget: '',
-    timeline: '6개월',
-    competency: '',
-    uniqueSellingPoint: '',
+    aiTech: OPTIONS.aiTech[0],
+    target: OPTIONS.target[0],
+    platform: OPTIONS.platform[0],
+    bizModel: OPTIONS.bizModel[0],
+    budget: OPTIONS.budget[0],
+    timeline: OPTIONS.timeline[2],
+    competency: OPTIONS.competency[0],
+    uniqueSellingPoint: OPTIONS.uniqueSellingPoint[0],
     details: ''
   });
+
+  const handleSelectChange = (field: string, value: string) => {
+    if (value === '기타') {
+      setManualFields(prev => [...prev, field]);
+      setFormData(prev => ({ ...prev, [field]: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const resetToSelect = (field: string) => {
+    setManualFields(prev => prev.filter(f => f !== field));
+    setFormData(prev => ({ ...prev, [field]: OPTIONS[field][0] }));
+  };
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [output, setOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -42,6 +72,12 @@ export default function App() {
     } else if (process.env.GEMINI_API_KEY) {
       setApiKey(process.env.GEMINI_API_KEY);
     }
+
+    // Check for app authentication
+    const authVerified = localStorage.getItem('APP_AUTH_VERIFIED');
+    if (authVerified === 'true') {
+      setIsAuthVerified(true);
+    }
   }, []);
 
   const saveApiKey = () => {
@@ -55,7 +91,23 @@ export default function App() {
     setIsModalOpen(false);
   };
 
+  const handleVerifyCode = () => {
+    if (tempAuthCode.trim() === 'dc5') {
+      setIsAuthVerified(true);
+      localStorage.setItem('APP_AUTH_VERIFIED', 'true');
+      setIsAuthModalOpen(false);
+      setTempAuthCode('');
+    } else {
+      setError('인증 코드가 올바르지 않습니다.');
+    }
+  };
+
   const handleGenerate = async () => {
+    if (!isAuthVerified) {
+      setError('앱 기능을 사용하려면 코드 인증이 필요합니다.');
+      setIsAuthModalOpen(true);
+      return;
+    }
     if (!selectedFile && !formData.target.trim()) {
       setError('타겟 고객을 입력하거나 분석용 파일을 업로드해주세요.');
       return;
@@ -86,8 +138,8 @@ export default function App() {
       } else {
         prompt += `다음은 사용자가 'AI를 활용한 2026년 수익화 트렌드'를 파악하기 위해 세부적으로 입력한 항목들입니다:\n\n`;
       }
-
-      prompt += `- 활용 AI 기술: 혁신AI (고정)\n`;
+ 
+      if (formData.aiTech) prompt += `- 활용 AI 기술: ${formData.aiTech}\n`;
       if (formData.target) prompt += `- 타겟 고객: ${formData.target}\n`;
       if (formData.platform) prompt += `- 주력 플랫폼: ${formData.platform}\n`;
       if (formData.bizModel) prompt += `- 수익화 모델: ${formData.bizModel}\n`;
@@ -179,6 +231,12 @@ export default function App() {
       if (response.text) {
         setOutput(response.text);
         setProgress(100);
+        
+        // Auto download both files
+        setTimeout(() => {
+          downloadMD(response.text);
+          downloadWord(response.text);
+        }, 500);
       } else {
         setError('결과를 생성하지 못했습니다. 다시 시도해주세요.');
       }
@@ -194,8 +252,8 @@ export default function App() {
     }
   };
 
-  const downloadMD = () => {
-    const blob = new Blob([output], { type: 'text/markdown;charset=utf-8' });
+  const downloadMD = (content: string = output) => {
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -204,12 +262,12 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadWord = () => {
+  const downloadWord = (content: string = output) => {
     const htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"></head>
       <body>
-        ${output.replace(/\n/g, '<br>')}
+        ${content.replace(/\n/g, '<br>')}
       </body>
       </html>
     `;
@@ -239,13 +297,31 @@ export default function App() {
           <span className="font-bold text-xl tracking-tight text-white">혁신 트렌드 AI</span>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsPatchModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-neutral-800 rounded-full hover:bg-neutral-800 transition-all text-sm font-medium text-neutral-300"
+          >
+            <ClipboardList className="w-4 h-4 text-[#FFCC00]" />
+            <span className="hidden md:inline">패치노트</span>
+          </button>
+
+          {!isAuthVerified && (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#E31837]/10 border border-[#E31837]/30 rounded-full hover:bg-[#E31837]/20 transition-all text-sm font-medium text-[#E31837]"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>코드 인증</span>
+            </button>
+          )}
+
           <button
             onClick={() => setIsCostModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#D4AF37]/30 rounded-full hover:border-[#D4AF37] transition-all text-sm font-medium text-[#D4AF37]"
           >
             <Sparkles className="w-4 h-4" />
-            <span>API 비용</span>
+            <span className="hidden md:inline">API 비용</span>
           </button>
 
           <button
@@ -347,88 +423,237 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">활용 AI 기술</label>
-                  <input
-                    type="text"
-                    value={formData.aiTech}
-                    disabled
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-neutral-500 font-bold outline-none cursor-not-allowed text-sm italic"
-                  />
+                  {!manualFields.includes('aiTech') ? (
+                    <select
+                      value={formData.aiTech}
+                      onChange={(e) => handleSelectChange('aiTech', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.aiTech.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.aiTech}
+                        onChange={(e) => setFormData({...formData, aiTech: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('aiTech')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">
                     타겟 고객 {!selectedFile && <span className="text-[#E31837]">*</span>}
                   </label>
-                  <input
-                    type="text"
-                    value={formData.target}
-                    onChange={(e) => setFormData({...formData, target: e.target.value})}
-                    placeholder="예: 1020 Z세대"
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all text-sm text-white placeholder:text-neutral-700 font-medium"
-                  />
+                  {!manualFields.includes('target') ? (
+                    <select
+                      value={formData.target}
+                      onChange={(e) => handleSelectChange('target', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.target.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.target}
+                        onChange={(e) => setFormData({...formData, target: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('target')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">주력 플랫폼</label>
-                  <input
-                    type="text"
-                    value={formData.platform}
-                    onChange={(e) => setFormData({...formData, platform: e.target.value})}
-                    placeholder="예: 유튜브 쇼츠"
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all text-sm text-white placeholder:text-neutral-700 font-medium"
-                  />
+                  {!manualFields.includes('platform') ? (
+                    <select
+                      value={formData.platform}
+                      onChange={(e) => handleSelectChange('platform', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.platform.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.platform}
+                        onChange={(e) => setFormData({...formData, platform: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('platform')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">수익화 모델</label>
-                  <input
-                    type="text"
-                    value={formData.bizModel}
-                    onChange={(e) => setFormData({...formData, bizModel: e.target.value})}
-                    placeholder="예: 구독형 서비스"
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all text-sm text-white placeholder:text-neutral-700 font-medium"
-                  />
+                  {!manualFields.includes('bizModel') ? (
+                    <select
+                      value={formData.bizModel}
+                      onChange={(e) => handleSelectChange('bizModel', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.bizModel.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.bizModel}
+                        onChange={(e) => setFormData({...formData, bizModel: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('bizModel')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">초기 예산</label>
-                  <input
-                    type="text"
-                    value={formData.budget}
-                    onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                    placeholder="예: 0원 (무자본)"
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all text-sm text-white placeholder:text-neutral-700 font-medium"
-                  />
+                  {!manualFields.includes('budget') ? (
+                    <select
+                      value={formData.budget}
+                      onChange={(e) => handleSelectChange('budget', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.budget.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.budget}
+                        onChange={(e) => setFormData({...formData, budget: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('budget')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">목표 달성 기간</label>
-                  <select
-                    value={formData.timeline}
-                    onChange={(e) => setFormData({...formData, timeline: e.target.value})}
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all text-sm text-white appearance-none cursor-pointer font-medium"
-                  >
-                    <option value="1개월">1개월 (단기 속성)</option>
-                    <option value="3개월">3개월 (빠른 실행)</option>
-                    <option value="6개월">6개월 (안정적 구축)</option>
-                    <option value="1년">1년 (장기 프로젝트)</option>
-                    <option value="1년 이상">1년 이상</option>
-                  </select>
+                  {!manualFields.includes('timeline') ? (
+                    <select
+                      value={formData.timeline}
+                      onChange={(e) => handleSelectChange('timeline', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.timeline.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.timeline}
+                        onChange={(e) => setFormData({...formData, timeline: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('timeline')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">현재 보유 역량</label>
-                  <input
-                    type="text"
-                    value={formData.competency}
-                    onChange={(e) => setFormData({...formData, competency: e.target.value})}
-                    placeholder="예: 마케팅 기획"
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all text-sm text-white placeholder:text-neutral-700 font-medium"
-                  />
+                  {!manualFields.includes('competency') ? (
+                    <select
+                      value={formData.competency}
+                      onChange={(e) => handleSelectChange('competency', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.competency.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.competency}
+                        onChange={(e) => setFormData({...formData, competency: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('competency')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">차별화 포인트 (USP)</label>
-                  <input
-                    type="text"
-                    value={formData.uniqueSellingPoint}
-                    onChange={(e) => setFormData({...formData, uniqueSellingPoint: e.target.value})}
-                    placeholder="예: 초개인화 AI 엔진"
-                    className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all text-sm text-white placeholder:text-neutral-700 font-medium"
-                  />
+                  {!manualFields.includes('uniqueSellingPoint') ? (
+                    <select
+                      value={formData.uniqueSellingPoint}
+                      onChange={(e) => handleSelectChange('uniqueSellingPoint', e.target.value)}
+                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      {OPTIONS.uniqueSellingPoint.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.uniqueSellingPoint}
+                        onChange={(e) => setFormData({...formData, uniqueSellingPoint: e.target.value})}
+                        placeholder="직접 입력..."
+                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={() => resetToSelect('uniqueSellingPoint')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -482,14 +707,14 @@ export default function App() {
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
                   <div className="flex gap-3">
                     <button 
-                      onClick={downloadWord}
+                      onClick={() => downloadWord()}
                       className="flex items-center gap-2 px-5 py-3 text-sm font-black text-black bg-[#D4AF37] hover:bg-[#FFCC00] rounded-xl transition-all uppercase italic"
                     >
                       <Download className="w-4 h-4" />
                       DOCX
                     </button>
                     <button 
-                      onClick={downloadMD}
+                      onClick={() => downloadMD()}
                       className="flex items-center gap-2 px-5 py-3 text-sm font-black text-white bg-neutral-800 hover:bg-neutral-700 rounded-xl transition-all uppercase italic"
                     >
                       <Download className="w-4 h-4" />
@@ -663,6 +888,129 @@ export default function App() {
               >
                 Close Dashboard
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Patch Notes Modal */}
+      {isPatchModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+          <div className="bg-[#111111] border border-neutral-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-8 border-b border-neutral-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ClipboardList className="w-6 h-6 text-[#FFCC00]" />
+                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">Release <span className="text-[#FFCC00]">Patch Notes</span></h3>
+              </div>
+              <button 
+                onClick={() => setIsPatchModalOpen(false)}
+                className="p-2 text-neutral-500 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-8 max-h-[60vh] overflow-y-auto space-y-8 scrollbar-hide">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.2.0 - Security & Accessibility Update</h4>
+                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.25</span>
+                </div>
+                <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4">
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[보안 강화]</span> 애플리케이션 진입 시 코드 인증 시스템(dc5)이 도입되었습니다. 미인증 시 전략 생성 기능이 제한됩니다.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#FFCC00] mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[UI 개선]</span> 헤더 레이아웃을 리디자인하여 패치노트 및 인증 상태 확인이 용이하도록 개선되었습니다.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[사용성 향상]</span> 실시간 패치노트 확인 시스템이 가동되어 업데이트 소식을 빠르게 받아볼 수 있습니다.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.1.0 - Core System Innovation</h4>
+                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.22</span>
+                </div>
+                <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4">
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[비용 대시보드]</span> 실시간 API 사용량 및 예상 KRW 환산 금액 표시 기능을 구현했습니다.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[브랜딩 리디자인]</span> 블랙, 골드, 레드, 옐로우 톤앤매너로 전체 UI를 럭셔리 스타일로 변경했습니다.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-8 bg-neutral-900 border-t border-neutral-800 flex justify-center">
+              <button
+                onClick={() => setIsPatchModalOpen(false)}
+                className="w-full py-4 bg-[#1a1a1a] hover:bg-neutral-800 text-[#FFCC00] text-sm font-black rounded-xl border border-neutral-800 transition-all uppercase italic tracking-widest"
+              >
+                Close Patch Notes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Code Authentication Modal */}
+      {isAuthModalOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+          <div className="bg-[#111111] border border-[#E31837]/30 rounded-3xl shadow-[0_0_50px_rgba(227,24,55,0.15)] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-10 text-center">
+              <div className="w-16 h-16 bg-[#E31837]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-[#E31837]/20">
+                <ShieldCheck className="w-8 h-8 text-[#E31837]" />
+              </div>
+              <h3 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter">System <span className="text-[#E31837]">Authentication</span></h3>
+              <p className="text-sm text-neutral-500 mb-8 font-medium">서비스 이용을 위해 관리자로부터 발급받은<br/>보안 코드를 입력해 주세요.</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <input
+                    type="text"
+                    value={tempAuthCode}
+                    onChange={(e) => setTempAuthCode(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyCode()}
+                    placeholder="ENTER AUTH CODE..."
+                    className="w-full px-5 py-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#E31837] outline-none transition-all font-mono text-center text-xl text-white tracking-[0.5em] placeholder:tracking-normal placeholder:text-neutral-800 font-black"
+                  />
+                </div>
+                
+                {error && error.includes('인증 코드') && (
+                  <div className="p-3 bg-[#E31837]/10 text-[#E31837] rounded-xl text-xs font-bold border border-[#E31837]/20">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setIsAuthModalOpen(false)}
+                    className="flex-1 py-4 text-xs font-black text-neutral-500 hover:text-white transition-all uppercase italic"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleVerifyCode}
+                    className="flex-2 py-4 bg-[#E31837] hover:bg-[#ff1f3d] text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 uppercase italic tracking-widest"
+                  >
+                    Verify Code
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-8 flex items-center justify-center gap-2 text-neutral-600 text-[10px] font-bold uppercase tracking-widest italic">
+                <Info className="w-3 h-3" />
+                <span>Encrypted Security Channel Active</span>
+              </div>
             </div>
           </div>
         </div>
