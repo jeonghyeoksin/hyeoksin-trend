@@ -7,12 +7,18 @@ import mammoth from 'mammoth';
 import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download, ShieldCheck, ClipboardList, Info } from 'lucide-react';
 
 export default function App() {
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(() => {
+    const stored = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
+    if (stored) return stored;
+    return process.env.GEMINI_API_KEY || '';
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCostModalOpen, setIsCostModalOpen] = useState(false);
   const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAuthVerified, setIsAuthVerified] = useState(false);
+  const [isAuthVerified, setIsAuthVerified] = useState(() => {
+    return localStorage.getItem('APP_AUTH_VERIFIED') === 'true';
+  });
   const [tempKey, setTempKey] = useState('');
   const [tempAuthCode, setTempAuthCode] = useState('');
   
@@ -21,13 +27,13 @@ export default function App() {
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
   
   const OPTIONS: any = {
-    target: ["1인 지식 기업가", "소상공인 및 자영업자", "직장인 부업러", "2030 MZ세대", "실버 세대 (시니어)", "기타"],
-    platform: ["유튜브 (쇼츠 포함)", "인스타그램 / 틱톡", "네이버 블로그 / 카페", "개인 웹사이트 / 쇼핑몰", "뉴스레터 / 커뮤니티", "기타"],
-    bizModel: ["구독형 (SaaS/콘텐츠)", "광고 수익 (유튜브/블로그)", "지식 서비스 (전자책/강의)", "커머스 (위탁/사입)", "에이전시 / 서비스 대행", "기타"],
-    budget: ["0원 (무자본)", "100만원 이하 (소자본)", "500만원 이하", "1,000만원 이상", "투자 유치 희망", "기타"],
-    competency: ["마케팅 기획 및 홍보", "콘텐츠 제작 (영상/글)", "개발 및 기술적 지식", "영업 및 비즈니스 매너", "특별한 기술 없음 (입문자)", "기타"],
-    uniqueSellingPoint: ["압도적인 실행 속도", "전문적인 도메인 지식", "강력한 팬덤 / 퍼스널 브랜딩", "저렴한 가격 경쟁력", "독보적인 기술력", "기타"],
-    timeline: ["1개월", "3개월", "6개월", "1년", "1년 이상", "기타"]
+    target: ["수익화 발굴 파일 기반 분석", "1인 지식 기업가", "소상공인 및 자영업자", "직장인 부업러", "2030 MZ세대", "실버 세대 (시니어)", "기타"],
+    platform: ["수익화 발굴 파일 기반 분석", "유튜브 (쇼츠 포함)", "인스타그램 / 틱톡", "네이버 블로그 / 카페", "개인 웹사이트 / 쇼핑몰", "뉴스레터 / 커뮤니티", "기타"],
+    bizModel: ["수익화 발굴 파일 기반 분석", "구독형 (SaaS/콘텐츠)", "광고 수익 (유튜브/블로그)", "지식 서비스 (전자책/강의)", "커머스 (위탁/사입)", "에이전시 / 서비스 대행", "기타"],
+    budget: ["수익화 발굴 파일 기반 분석", "0원 (무자본)", "100만원 이하 (소자본)", "500만원 이하", "1,000만원 이상", "투자 유치 희망", "기타"],
+    competency: ["수익화 발굴 파일 기반 분석", "마케팅 기획 및 홍보", "콘텐츠 제작 (영상/글)", "개발 및 기술적 지식", "영업 및 비즈니스 매너", "특별한 기술 없음 (입문자)", "기타"],
+    uniqueSellingPoint: ["수익화 발굴 파일 기반 분석", "압도적인 실행 속도", "전문적인 도메인 지식", "강력한 팬덤 / 퍼스널 브랜딩", "저렴한 가격 경쟁력", "독보적인 기술력", "기타"],
+    timeline: ["수익화 발굴 파일 기반 분석", "1개월", "3개월", "6개월", "1년", "1년 이상", "기타"]
   };
 
   const [manualFields, setManualFields] = useState<string[]>([]);
@@ -37,7 +43,7 @@ export default function App() {
     platform: OPTIONS.platform[0],
     bizModel: OPTIONS.bizModel[0],
     budget: OPTIONS.budget[0],
-    timeline: OPTIONS.timeline[2],
+    timeline: OPTIONS.timeline[0],
     competency: OPTIONS.competency[0],
     uniqueSellingPoint: OPTIONS.uniqueSellingPoint[0],
     details: ''
@@ -64,19 +70,8 @@ export default function App() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Check local storage for custom API key first, fallback to env
-    const storedKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-    if (storedKey) {
-      setApiKey(storedKey);
-    } else if (process.env.GEMINI_API_KEY) {
-      setApiKey(process.env.GEMINI_API_KEY);
-    }
-
-    // Check for app authentication
-    const authVerified = localStorage.getItem('APP_AUTH_VERIFIED');
-    if (authVerified === 'true') {
-      setIsAuthVerified(true);
-    }
+    // Session persistence confirmed on load
+    console.log('Session initialized:', { auth: isAuthVerified, hasApiKey: !!apiKey });
   }, []);
 
   const saveApiKey = () => {
