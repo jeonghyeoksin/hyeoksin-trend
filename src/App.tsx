@@ -213,7 +213,7 @@ export default function App() {
       setProgressMessage('AI가 로드맵과 마케팅 전략을 생성하고 있습니다 (약 10~20초 소요)...');
 
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-pro',
+        model: 'gemini-3-flash-preview',
         contents: { parts },
       });
 
