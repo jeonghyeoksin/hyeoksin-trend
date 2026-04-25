@@ -21,7 +21,6 @@ export default function App() {
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
   
   const OPTIONS: any = {
-    aiTech: ["Gemini 1.5 Pro", "GPT-4o (OpenAI)", "Claude 3.5 Sonnet", "Perplexity AI", "오픈소스 LLM (Llama 3 등)", "기타"],
     target: ["1인 지식 기업가", "소상공인 및 자영업자", "직장인 부업러", "2030 MZ세대", "실버 세대 (시니어)", "기타"],
     platform: ["유튜브 (쇼츠 포함)", "인스타그램 / 틱톡", "네이버 블로그 / 카페", "개인 웹사이트 / 쇼핑몰", "뉴스레터 / 커뮤니티", "기타"],
     bizModel: ["구독형 (SaaS/콘텐츠)", "광고 수익 (유튜브/블로그)", "지식 서비스 (전자책/강의)", "커머스 (위탁/사입)", "에이전시 / 서비스 대행", "기타"],
@@ -33,7 +32,7 @@ export default function App() {
 
   const [manualFields, setManualFields] = useState<string[]>([]);
   const [formData, setFormData] = useState({
-    aiTech: OPTIONS.aiTech[0],
+    aiTech: "혁신AI",
     target: OPTIONS.target[0],
     platform: OPTIONS.platform[0],
     bizModel: OPTIONS.bizModel[0],
@@ -423,32 +422,9 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">활용 AI 기술</label>
-                  {!manualFields.includes('aiTech') ? (
-                    <select
-                      value={formData.aiTech}
-                      onChange={(e) => handleSelectChange('aiTech', e.target.value)}
-                      className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-white font-medium outline-none transition-all text-sm appearance-none cursor-pointer"
-                    >
-                      {OPTIONS.aiTech.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  ) : (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={formData.aiTech}
-                        onChange={(e) => setFormData({...formData, aiTech: e.target.value})}
-                        placeholder="직접 입력..."
-                        className="w-full p-4 bg-[#1a1a1a] border border-[#D4AF37] rounded-2xl text-white outline-none text-sm pr-12"
-                        autoFocus
-                      />
-                      <button 
-                        onClick={() => resetToSelect('aiTech')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
-                      >
-                        Back
-                      </button>
-                    </div>
-                  )}
+                  <div className="w-full p-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl text-neutral-500 font-bold outline-none cursor-not-allowed text-sm italic">
+                    혁신AI
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#D4AF37] mb-2 uppercase tracking-widest">
