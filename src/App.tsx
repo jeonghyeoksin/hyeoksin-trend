@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import mammoth from 'mammoth';
-import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download, ShieldCheck, ClipboardList, Info } from 'lucide-react';
+import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download, ShieldCheck, ClipboardList, Info, Eye, EyeOff } from 'lucide-react';
 
 export default function App() {
   const [apiKey, setApiKey] = useState(() => {
@@ -12,15 +12,22 @@ export default function App() {
     if (stored) return stored;
     return process.env.GEMINI_API_KEY || '';
   });
+  const [showApiKey, setShowApiKey] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCostModalOpen, setIsCostModalOpen] = useState(false);
   const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthVerified, setIsAuthVerified] = useState(() => {
-    return localStorage.getItem('APP_AUTH_VERIFIED') === 'true';
+    try {
+      return localStorage.getItem('APP_AUTH_VERIFIED') === 'true';
+    } catch (e) {
+      return false;
+    }
   });
   const [tempKey, setTempKey] = useState('');
   const [tempAuthCode, setTempAuthCode] = useState('');
+  
+  const [showSupportInfo, setShowSupportInfo] = useState(false);
   
   // API Cost Tracking
   const [totalInputTokens, setTotalInputTokens] = useState(0);
@@ -209,27 +216,37 @@ export default function App() {
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: { parts },
+        contents: [{ parts }],
       });
 
       setProgress(90);
       setProgressMessage('결과를 정리하고 있습니다...');
 
-      // Update token usage if available
-      const usageMetadata = response.usageMetadata;
-      if (usageMetadata) {
-        setTotalInputTokens(prev => prev + (usageMetadata.promptTokenCount || 0));
-        setTotalOutputTokens(prev => prev + (usageMetadata.candidatesTokenCount || 0));
+      if (!response) {
+        throw new Error('AI 응답을 받지 못했습니다. 네트워크 상태를 확인해주세요.');
       }
 
-      if (response.text) {
-        setOutput(response.text);
+      const generatedText = response.text;
+      
+      // Update token usage if available - safely
+      try {
+        const usageMetadata = response.usageMetadata;
+        if (usageMetadata) {
+          setTotalInputTokens(prev => prev + (Number(usageMetadata.promptTokenCount) || 0));
+          setTotalOutputTokens(prev => prev + (Number(usageMetadata.candidatesTokenCount) || 0));
+        }
+      } catch (usageErr) {
+        console.warn('Metadata parsing failed:', usageErr);
+      }
+
+      if (generatedText) {
+        setOutput(generatedText);
         setProgress(100);
         
         // Auto download both files
         setTimeout(() => {
-          downloadMD(response.text);
-          downloadWord(response.text);
+          downloadMD(generatedText);
+          downloadWord(generatedText);
         }, 500);
       } else {
         setError('결과를 생성하지 못했습니다. 다시 시도해주세요.');
@@ -288,7 +305,7 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-[#D4AF37]" />
-          <span className="font-bold text-xl tracking-tight text-white">혁신 트렌드 AI</span>
+          <span className="font-bold text-xl tracking-tight text-white">혁신 트렌드 분석 AI</span>
         </div>
         
         <div className="flex items-center gap-3">
@@ -352,7 +369,7 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
         <div className="relative z-10 text-center px-4">
           <h1 className="text-4xl md:text-7xl font-black text-white tracking-tighter mb-4 uppercase italic">
-            <span className="text-[#D4AF37]">혁신</span> <span className="text-[#E31837]">트렌드</span> <span className="text-[#FFCC00]">AI</span>
+            <span className="text-[#D4AF37]">혁신</span> <span className="text-[#E31837]">트렌드</span> <span className="text-[#FFCC00]">분석 AI</span>
           </h1>
           <p className="text-lg md:text-xl text-neutral-400 font-medium max-w-2xl mx-auto drop-shadow-md">
             2026년 AI 수익화 트렌드를 분석하고, 당신만의 완벽한 비즈니스 로드맵과 마케팅 전략을 설계하세요.
@@ -447,7 +464,7 @@ export default function App() {
                         onClick={() => resetToSelect('target')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
                       >
-                        Back
+                        이전으로
                       </button>
                     </div>
                   )}
@@ -476,7 +493,7 @@ export default function App() {
                         onClick={() => resetToSelect('platform')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
                       >
-                        Back
+                        이전으로
                       </button>
                     </div>
                   )}
@@ -505,7 +522,7 @@ export default function App() {
                         onClick={() => resetToSelect('bizModel')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
                       >
-                        Back
+                        이전으로
                       </button>
                     </div>
                   )}
@@ -534,7 +551,7 @@ export default function App() {
                         onClick={() => resetToSelect('budget')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
                       >
-                        Back
+                        이전으로
                       </button>
                     </div>
                   )}
@@ -563,7 +580,7 @@ export default function App() {
                         onClick={() => resetToSelect('timeline')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
                       >
-                        Back
+                        이전으로
                       </button>
                     </div>
                   )}
@@ -592,7 +609,7 @@ export default function App() {
                         onClick={() => resetToSelect('competency')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
                       >
-                        Back
+                        이전으로
                       </button>
                     </div>
                   )}
@@ -621,7 +638,7 @@ export default function App() {
                         onClick={() => resetToSelect('uniqueSellingPoint')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 hover:text-white uppercase font-black italic"
                       >
-                        Back
+                        이전으로
                       </button>
                     </div>
                   )}
@@ -653,12 +670,12 @@ export default function App() {
               {isGenerating ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin text-black" />
-                  ANALYZING TRENDS...
+                  트렌드 분석 중...
                 </>
               ) : (
                 <>
                   <Send className="w-6 h-6" />
-                  GENERATE STRATEGY
+                  전략 생성하기
                 </>
               )}
             </button>
@@ -693,7 +710,7 @@ export default function App() {
                     </button>
                   </div>
                   <div className="bg-[#E31837] text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest italic animate-pulse">
-                    Strategic AI Analysis Complete
+                    전략적 AI 분석 완료
                   </div>
                 </div>
                 <div className="prose prose-invert prose-slate prose-amber max-w-none prose-headings:text-[#FFCC00] prose-headings:italic prose-p:text-neutral-300 prose-p:leading-relaxed prose-strong:text-[#D4AF37] prose-li:text-neutral-300 flex-1 whitespace-pre-wrap">
@@ -723,7 +740,7 @@ export default function App() {
                         />
                       ))}
                     </div>
-                    <span className="text-xs font-black text-neutral-500 uppercase tracking-widest italic tracking-tighter">Initializing AI Core...</span>
+                    <span className="text-xs font-black text-neutral-500 uppercase tracking-widest italic tracking-tighter">AI 분석 엔진 가동 중...</span>
                   </div>
                 </div>
               </div>
@@ -734,8 +751,8 @@ export default function App() {
                   <div className="absolute inset-0 bg-[#D4AF37] blur-3xl opacity-10"></div>
                 </div>
                 <p className="text-center font-bold uppercase tracking-tighter italic text-lg leading-tight">
-                  Ready to <span className="text-white">Innovate?</span><br/>
-                  <span className="text-sm not-italic font-medium text-neutral-500 lowercase">Enter details to generate your futuristic roadmap.</span>
+                  혁신 준비가 <span className="text-white">되셨나요?</span><br/>
+                  <span className="text-sm not-italic font-medium text-neutral-500 lowercase">세부 정보를 입력하여 미래형 로드맵을 생성하세요.</span>
                 </p>
               </div>
             )}
@@ -744,15 +761,56 @@ export default function App() {
 
       </main>
 
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-8 right-8 z-[80] flex flex-col gap-4 items-end">
+        {/* Support Info Popup */}
+        {showSupportInfo && (
+          <div className="bg-[#111111] border border-neutral-800 p-6 rounded-2xl shadow-2xl w-72 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <h4 className="text-[#E31837] font-black text-xs uppercase tracking-widest italic mb-3">오류 및 유지보수 문의</h4>
+            <p className="text-white font-bold text-sm mb-4">info@nextin.ai.kr</p>
+            <p className="text-neutral-500 text-[10px] leading-relaxed">
+              해당 메일로 오류 내용을 자세하게 작성 또는 캡쳐해서 보내주시면 유지보수 후 답변 드립니다.
+            </p>
+            <button 
+              onClick={() => setShowSupportInfo(false)}
+              className="mt-4 w-full py-2 bg-neutral-900 text-xs font-bold text-neutral-400 rounded-lg"
+            >
+              닫기
+            </button>
+          </div>
+        )}
+
+        <div className="flex gap-4">
+          <a
+            href="https://hyeoksinai.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-6 py-4 bg-[#D4AF37] hover:bg-[#FFCC00] text-black font-black rounded-2xl shadow-[0_0_30px_rgba(212,175,55,0.3)] transition-all uppercase italic tracking-tighter group h-14"
+          >
+            <Sparkles className="w-5 h-5" />
+            <span className="hidden md:inline">혁신 AI 플랫폼 바로가기</span>
+            <span className="md:hidden">플랫폼 바로가기</span>
+          </a>
+
+          <button
+            onClick={() => setShowSupportInfo(!showSupportInfo)}
+            className="flex items-center justify-center w-14 h-14 bg-white hover:bg-neutral-200 text-black rounded-2xl shadow-xl transition-all border border-neutral-200"
+            title="고객 지원"
+          >
+            <Info className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+
       {/* Footer */}
       <footer className="py-12 text-center border-t border-neutral-900 mt-12">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-[#D4AF37]" />
-            <span className="font-black italic text-white tracking-widest uppercase">혁신 트렌드 AI</span>
+            <span className="font-black italic text-white tracking-widest uppercase">혁신 트렌드 분석 AI</span>
           </div>
           <p className="text-neutral-600 text-xs font-bold uppercase tracking-widest italic">
-            © 2026 혁신 트렌드 AI Lab. All rights reserved. Directed by 혁신.
+            © 2026 혁신 트렌드 분석 AI Lab. All rights reserved. Directed by 혁신.
           </p>
           <div className="flex gap-4">
             <div className="w-8 h-1 bg-[#D4AF37]"></div>
@@ -767,7 +825,7 @@ export default function App() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
           <div className="bg-[#111111] border border-neutral-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
             <div className="p-8">
-              <h3 className="text-2xl font-black text-white mb-3 uppercase italic tracking-tighter">Google API Key <span className="text-[#D4AF37]">Access</span></h3>
+              <h3 className="text-2xl font-black text-white mb-3 uppercase italic tracking-tighter">Google API Key <span className="text-[#D4AF37]">액세스</span></h3>
               <p className="text-sm text-neutral-500 mb-8 font-medium">
                 본인의 Gemini API Key를 입력하여 서비스를 활성화하세요. 데이터는 사용자의 로컬 환경에만 안전하게 암호화되어 저장됩니다.
               </p>
@@ -775,16 +833,25 @@ export default function App() {
               <div className="space-y-5">
                 <div>
                   <label htmlFor="apiKey" className="block text-xs font-black text-[#D4AF37] mb-2 uppercase tracking-widest">
-                    Security credentials
+                    보안 자격 증명
                   </label>
-                  <input
-                    id="apiKey"
-                    type="password"
-                    value={tempKey}
-                    onChange={(e) => setTempKey(e.target.value)}
-                    placeholder="ENTER YOUR GEMINI API KEY..."
-                    className="w-full px-5 py-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all font-mono text-sm text-white placeholder:text-neutral-800"
-                  />
+                  <div className="relative">
+                    <input
+                      id="apiKey"
+                      type={showApiKey ? "text" : "password"}
+                      value={tempKey}
+                      onChange={(e) => setTempKey(e.target.value)}
+                      placeholder="GEMINI API KEY를 입력하세요..."
+                      className="w-full px-5 py-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#D4AF37] outline-none transition-all font-mono text-sm text-white placeholder:text-neutral-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                    >
+                      {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -794,14 +861,14 @@ export default function App() {
                 onClick={() => setIsModalOpen(false)}
                 className="px-6 py-3 text-xs font-black text-neutral-500 hover:text-white transition-all uppercase italic"
               >
-                Cancel
+                취소
               </button>
               <button
                 onClick={saveApiKey}
                 className="px-8 py-3 bg-[#D4AF37] hover:bg-[#FFCC00] text-black text-xs font-black rounded-xl shadow-lg transition-all flex items-center gap-2 uppercase italic tracking-widest"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Authorize
+                인증하기
               </button>
             </div>
           </div>
@@ -825,39 +892,39 @@ export default function App() {
                 <Sparkles className="w-10 h-10 text-[#D4AF37]" />
               </div>
               
-              <h3 className="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">AI Usage <span className="text-[#D4AF37]">Cost</span></h3>
+              <h3 className="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">AI 사용 <span className="text-[#D4AF37]">비용</span></h3>
               <p className="text-sm text-neutral-500 mb-10 font-bold uppercase tracking-widest italic">실시간 API 소모 예산 분석</p>
               
               <div className="space-y-8">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-neutral-800">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">Input Tokens</p>
+                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">입력 토큰 (Input)</p>
                     <p className="text-xl font-black text-white italic">{totalInputTokens.toLocaleString()}</p>
                   </div>
                   <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-neutral-800">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">Output Tokens</p>
+                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">출력 토큰 (Output)</p>
                     <p className="text-xl font-black text-white italic">{totalOutputTokens.toLocaleString()}</p>
                   </div>
                 </div>
-
+ 
                 <div className="py-10 border-y border-neutral-800 relative">
                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#111111] px-4 text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.3em] italic">
-                     Estimated Total
+                     예상 총 비용
                    </div>
                    <div className="text-6xl font-black text-[#FFCC00] italic tracking-tighter mb-2">
                      {currentCostKRW.toLocaleString()}<span className="text-2xl ml-2 not-italic text-neutral-400">KRW</span>
                    </div>
                    <p className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
-                     Model: Gemini 1.5 Pro (Preview) | 1,350 KRW/USD
+                     Model: Gemini 3 Flash (Preview) | 1,350 KRW/USD
                    </p>
                 </div>
               </div>
-
+ 
               <button
                 onClick={() => setIsCostModalOpen(false)}
                 className="mt-12 w-full py-5 bg-neutral-900 hover:bg-neutral-800 text-white font-black rounded-2xl shadow-xl transition-all uppercase italic tracking-widest border border-neutral-800"
               >
-                Close Dashboard
+                대시보드 닫기
               </button>
             </div>
           </div>
@@ -871,7 +938,7 @@ export default function App() {
             <div className="p-8 border-b border-neutral-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <ClipboardList className="w-6 h-6 text-[#FFCC00]" />
-                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">Release <span className="text-[#FFCC00]">Patch Notes</span></h3>
+                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">릴리즈 <span className="text-[#FFCC00]">패치 노트</span></h3>
               </div>
               <button 
                 onClick={() => setIsPatchModalOpen(false)}
@@ -926,7 +993,7 @@ export default function App() {
                 onClick={() => setIsPatchModalOpen(false)}
                 className="w-full py-4 bg-[#1a1a1a] hover:bg-neutral-800 text-[#FFCC00] text-sm font-black rounded-xl border border-neutral-800 transition-all uppercase italic tracking-widest"
               >
-                Close Patch Notes
+                패치 노트 닫기
               </button>
             </div>
           </div>
@@ -941,7 +1008,7 @@ export default function App() {
               <div className="w-16 h-16 bg-[#E31837]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-[#E31837]/20">
                 <ShieldCheck className="w-8 h-8 text-[#E31837]" />
               </div>
-              <h3 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter">System <span className="text-[#E31837]">Authentication</span></h3>
+              <h3 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter">시스템 <span className="text-[#E31837]">인증</span></h3>
               <p className="text-sm text-neutral-500 mb-8 font-medium">서비스 이용을 위해 관리자로부터 발급받은<br/>보안 코드를 입력해 주세요.</p>
               
               <div className="space-y-6">
@@ -951,7 +1018,7 @@ export default function App() {
                     value={tempAuthCode}
                     onChange={(e) => setTempAuthCode(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyCode()}
-                    placeholder="ENTER AUTH CODE..."
+                    placeholder="보안 코드를 입력하세요..."
                     className="w-full px-5 py-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#E31837] outline-none transition-all font-mono text-center text-xl text-white tracking-[0.5em] placeholder:tracking-normal placeholder:text-neutral-800 font-black"
                   />
                 </div>
@@ -961,26 +1028,26 @@ export default function App() {
                     {error}
                   </div>
                 )}
-
+ 
                 <div className="flex gap-4">
                   <button
                     onClick={() => setIsAuthModalOpen(false)}
                     className="flex-1 py-4 text-xs font-black text-neutral-500 hover:text-white transition-all uppercase italic"
                   >
-                    Cancel
+                    취소
                   </button>
                   <button
                     onClick={handleVerifyCode}
                     className="flex-2 py-4 bg-[#E31837] hover:bg-[#ff1f3d] text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 uppercase italic tracking-widest"
                   >
-                    Verify Code
+                    코드 확인
                   </button>
                 </div>
               </div>
               
               <div className="mt-8 flex items-center justify-center gap-2 text-neutral-600 text-[10px] font-bold uppercase tracking-widest italic">
                 <Info className="w-3 h-3" />
-                <span>Encrypted Security Channel Active</span>
+                <span>암호화 보안 채널 활성화됨</span>
               </div>
             </div>
           </div>
