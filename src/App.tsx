@@ -93,11 +93,13 @@ export default function App() {
   };
 
   const handleVerifyCode = () => {
-    if (tempAuthCode.trim() === 'dc5') {
+    const validCodes = ['dc4', 'dc5'];
+    if (validCodes.includes(tempAuthCode.trim())) {
       setIsAuthVerified(true);
       localStorage.setItem('APP_AUTH_VERIFIED', 'true');
       setIsAuthModalOpen(false);
       setTempAuthCode('');
+      setError('');
     } else {
       setError('인증 코드가 올바르지 않습니다.');
     }
@@ -317,15 +319,17 @@ export default function App() {
             <span className="hidden md:inline">패치노트</span>
           </button>
 
-          {!isAuthVerified && (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E31837]/10 border border-[#E31837]/30 rounded-full hover:bg-[#E31837]/20 transition-all text-sm font-medium text-[#E31837]"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>코드 인증</span>
-            </button>
-          )}
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className={`flex items-center gap-2 px-4 py-2 border rounded-full transition-all text-sm font-medium ${
+              isAuthVerified 
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20' 
+                : 'bg-[#E31837]/10 border-[#E31837]/30 text-[#E31837] hover:bg-[#E31837]/20'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>{isAuthVerified ? '코드 인증 완료' : '코드 입력'}</span>
+          </button>
 
           <button
             onClick={() => setIsCostModalOpen(true)}
@@ -951,38 +955,38 @@ export default function App() {
             <div className="p-8 max-h-[60vh] overflow-y-auto space-y-8 scrollbar-hide">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.2.0 - Security & Accessibility Update</h4>
-                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.25</span>
+                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.3.0 - Multi-Code Security Update</h4>
+                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.27</span>
                 </div>
                 <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4">
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[보안 강화]</span> 애플리케이션 진입 시 코드 인증 시스템(dc5)이 도입되었습니다. 미인증 시 전략 생성 기능이 제한됩니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[인증 시스템 확장]</span> 관리용 보안 코드 라이브러리를 업데이트하여 접근 화이트리스트를 최신화했습니다.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#FFCC00] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[UI 개선]</span> 헤더 레이아웃을 리디자인하여 패치노트 및 인증 상태 확인이 용이하도록 개선되었습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[UI 네비게이션]</span> 헤더에 상설 코드 입력 버튼을 추가하여 인증 상태 확인 및 코드 관리를 더욱 직관적으로 개선했습니다.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[사용성 향상]</span> 실시간 패치노트 확인 시스템이 가동되어 업데이트 소식을 빠르게 받아볼 수 있습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[실시간 패치 노트]</span> 애플리케이션 업데이트 사항을 즉각적으로 확인할 수 있는 동적 알림 시스템이 통합되었습니다.</p>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.1.0 - Core System Innovation</h4>
-                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.22</span>
+                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.2.0 - Security & Accessibility Update</h4>
+                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.25</span>
                 </div>
                 <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4">
                   <div className="flex gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[비용 대시보드]</span> 실시간 API 사용량 및 예상 KRW 환산 금액 표시 기능을 구현했습니다.</p>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[보안 강화]</span> 애플리케이션 진입 시 고급 보안 코드 인증 시스템이 도입되었습니다. 미인증 시 핵심 기능 사용이 제한됩니다.</p>
                   </div>
                   <div className="flex gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[브랜딩 리디자인]</span> 블랙, 골드, 레드, 옐로우 톤앤매너로 전체 UI를 럭셔리 스타일로 변경했습니다.</p>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#FFCC00] mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[언어 현지화]</span> 전체 UI의 한글화 작업을 완료하여 국내 사용자 가독성을 최적화했습니다.</p>
                   </div>
                 </div>
               </div>
