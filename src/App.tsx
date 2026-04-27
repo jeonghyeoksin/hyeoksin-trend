@@ -390,7 +390,7 @@ export default function App() {
             <span className="text-[#D4AF37]">혁신</span> <span className="text-[#E31837]">트렌드</span> <span className="text-[#FFCC00]">분석 AI</span>
           </h1>
           <p className="text-lg md:text-xl text-neutral-400 font-medium max-w-2xl mx-auto drop-shadow-md">
-            2026년 AI 수익화 트렌드를 분석하고, 당신만의 완벽한 비즈니스 로드맵과 마케팅 전략을 설계하세요.
+            2026년 AI 수익화 트렌드를 분석하고, <br /> 여러분만의 수익화 로드맵과 전략을 설계합니다.
           </p>
         </div>
       </section>
