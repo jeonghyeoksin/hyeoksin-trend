@@ -32,6 +32,15 @@ export default function App() {
   // API Cost Tracking
   const [totalInputTokens, setTotalInputTokens] = useState(0);
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
+
+  // Patch notes "New" logic
+  const LAST_PATCH_DATE = new Date('2026-04-27');
+  const isNewPatch = () => {
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - LAST_PATCH_DATE.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 3;
+  };
   
   const OPTIONS: any = {
     target: ["수익화 발굴 파일 기반 분석", "1인 지식 기업가", "소상공인 및 자영업자", "직장인 부업러", "2030 MZ세대", "실버 세대 (시니어)", "기타"],
@@ -313,10 +322,15 @@ export default function App() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsPatchModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-neutral-800 rounded-full hover:bg-neutral-800 transition-all text-sm font-medium text-neutral-300"
+            className="relative flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-neutral-800 rounded-full hover:bg-neutral-800 transition-all text-sm font-medium text-neutral-300"
           >
             <ClipboardList className="w-4 h-4 text-[#FFCC00]" />
             <span className="hidden md:inline">패치노트</span>
+            {isNewPatch() && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-8 items-center justify-center rounded-full bg-[#E31837] text-[8px] font-black text-white italic tracking-tighter shadow-lg ring-1 ring-black">
+                NEW
+              </span>
+            )}
           </button>
 
           <button
@@ -955,38 +969,47 @@ export default function App() {
             <div className="p-8 max-h-[60vh] overflow-y-auto space-y-8 scrollbar-hide">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.3.0 - Multi-Code Security Update</h4>
-                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.27</span>
+                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.4.0 - Total System Optimization</h4>
+                  <span className="text-[10px] bg-[#E31837] text-white px-2 py-1 rounded font-bold italic">2026.04.27 [LATEST]</span>
                 </div>
                 <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4">
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[인증 시스템 확장]</span> 관리용 보안 코드 라이브러리를 업데이트하여 접근 화이트리스트를 최신화했습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[파일명 일원화]</span> 전략 리포트 다운로드 시 파일명을 "혁신 트렌드 분석 AI"로 공식화했습니다.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#FFCC00] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[UI 네비게이션]</span> 헤더에 상설 코드 입력 버튼을 추가하여 인증 상태 확인 및 코드 관리를 더욱 직관적으로 개선했습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[보안 라이브러리]</span> 범용 인증 코드 라이브러리를 최신화하여 다중 계층 보안을 강화했습니다.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[실시간 패치 노트]</span> 애플리케이션 업데이트 사항을 즉각적으로 확인할 수 있는 동적 알림 시스템이 통합되었습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[UX 현지화]</span> 국내 비즈니스 환경에 맞춰 모든 인터페이스 명칭을 한글로 정밀 튜닝했습니다.</p>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.2.0 - Security & Accessibility Update</h4>
+                  <h4 className="text-lg font-black text-neutral-500 italic">v1.3.0 - Multi-Code Security Update</h4>
+                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.27</span>
+                </div>
+                <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4 opacity-60">
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-neutral-600 mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-400 leading-relaxed font-medium"><span className="text-neutral-300 font-bold">[보안 시스템]</span> 인증 라이브러리 업데이트 및 헤더 네비게이션 개선.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-black text-neutral-500 italic">v1.2.0 - Security & Accessibility Update</h4>
                   <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.25</span>
                 </div>
-                <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4">
+                <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4 opacity-60">
                   <div className="flex gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[보안 강화]</span> 애플리케이션 진입 시 고급 보안 코드 인증 시스템이 도입되었습니다. 미인증 시 핵심 기능 사용이 제한됩니다.</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#FFCC00] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[언어 현지화]</span> 전체 UI의 한글화 작업을 완료하여 국내 사용자 가독성을 최적화했습니다.</p>
+                    <div className="w-1.5 h-1.5 rounded-full bg-neutral-600 mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-400 leading-relaxed font-medium"><span className="text-neutral-300 font-bold">[UI 정제]</span> 한글화 완료 및 고급 보안 코드 시스템 도입.</p>
                   </div>
                 </div>
               </div>
