@@ -270,7 +270,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = '수익화_로드맵_전략.md';
+    a.download = '혁신 트렌드 분석 AI.md';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -288,7 +288,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = '수익화_로드맵_전략.doc';
+    a.download = '혁신 트렌드 분석 AI.doc';
     a.click();
     URL.revokeObjectURL(url);
   };
