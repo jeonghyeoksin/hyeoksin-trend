@@ -16,16 +16,7 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCostModalOpen, setIsCostModalOpen] = useState(false);
   const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAuthVerified, setIsAuthVerified] = useState(() => {
-    try {
-      return localStorage.getItem('APP_AUTH_VERIFIED') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
   const [tempKey, setTempKey] = useState('');
-  const [tempAuthCode, setTempAuthCode] = useState('');
   
   const [showSupportInfo, setShowSupportInfo] = useState(false);
   
@@ -87,7 +78,7 @@ export default function App() {
 
   useEffect(() => {
     // Session persistence confirmed on load
-    console.log('Session initialized:', { auth: isAuthVerified, hasApiKey: !!apiKey });
+    console.log('Session initialized:', { hasApiKey: !!apiKey });
   }, []);
 
   const saveApiKey = () => {
@@ -101,25 +92,7 @@ export default function App() {
     setIsModalOpen(false);
   };
 
-  const handleVerifyCode = () => {
-    const validCodes = ['dc4', 'dc5'];
-    if (validCodes.includes(tempAuthCode.trim())) {
-      setIsAuthVerified(true);
-      localStorage.setItem('APP_AUTH_VERIFIED', 'true');
-      setIsAuthModalOpen(false);
-      setTempAuthCode('');
-      setError('');
-    } else {
-      setError('인증 코드가 올바르지 않습니다.');
-    }
-  };
-
   const handleGenerate = async () => {
-    if (!isAuthVerified) {
-      setError('앱 기능을 사용하려면 코드 인증이 필요합니다.');
-      setIsAuthModalOpen(true);
-      return;
-    }
     if (!selectedFile && !formData.target.trim()) {
       setError('타겟 고객을 입력하거나 분석용 파일을 업로드해주세요.');
       return;
@@ -331,18 +304,6 @@ export default function App() {
                 NEW
               </span>
             )}
-          </button>
-
-          <button
-            onClick={() => setIsAuthModalOpen(true)}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-full transition-all text-sm font-medium ${
-              isAuthVerified 
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20' 
-                : 'bg-[#E31837]/10 border-[#E31837]/30 text-[#E31837] hover:bg-[#E31837]/20'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>{isAuthVerified ? '코드 인증 완료' : '코드 입력'}</span>
           </button>
 
           <button
@@ -1022,60 +983,6 @@ export default function App() {
               >
                 패치 노트 닫기
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Code Authentication Modal */}
-      {isAuthModalOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-          <div className="bg-[#111111] border border-[#E31837]/30 rounded-3xl shadow-[0_0_50px_rgba(227,24,55,0.15)] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div className="p-10 text-center">
-              <div className="w-16 h-16 bg-[#E31837]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-[#E31837]/20">
-                <ShieldCheck className="w-8 h-8 text-[#E31837]" />
-              </div>
-              <h3 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter">시스템 <span className="text-[#E31837]">인증</span></h3>
-              <p className="text-sm text-neutral-500 mb-8 font-medium">서비스 이용을 위해 관리자로부터 발급받은<br/>보안 코드를 입력해 주세요.</p>
-              
-              <div className="space-y-6">
-                <div>
-                  <input
-                    type="text"
-                    value={tempAuthCode}
-                    onChange={(e) => setTempAuthCode(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyCode()}
-                    placeholder="보안 코드를 입력하세요..."
-                    className="w-full px-5 py-4 bg-[#1a1a1a] border border-neutral-800 rounded-2xl focus:border-[#E31837] outline-none transition-all font-mono text-center text-xl text-white tracking-[0.5em] placeholder:tracking-normal placeholder:text-neutral-800 font-black"
-                  />
-                </div>
-                
-                {error && error.includes('인증 코드') && (
-                  <div className="p-3 bg-[#E31837]/10 text-[#E31837] rounded-xl text-xs font-bold border border-[#E31837]/20">
-                    {error}
-                  </div>
-                )}
- 
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setIsAuthModalOpen(false)}
-                    className="flex-1 py-4 text-xs font-black text-neutral-500 hover:text-white transition-all uppercase italic"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleVerifyCode}
-                    className="flex-2 py-4 bg-[#E31837] hover:bg-[#ff1f3d] text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 uppercase italic tracking-widest"
-                  >
-                    코드 확인
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mt-8 flex items-center justify-center gap-2 text-neutral-600 text-[10px] font-bold uppercase tracking-widest italic">
-                <Info className="w-3 h-3" />
-                <span>암호화 보안 채널 활성화됨</span>
-              </div>
             </div>
           </div>
         </div>

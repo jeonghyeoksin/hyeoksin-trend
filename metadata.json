@@ -1,5 +1,6 @@
 {
-  "name": "혁신 트렌드 AI",
+  "name": "혁신 트렌드 분석 AI",
   "description": "AI를 활용한 2026년 수익화 트렌드를 파악하고 준비 로드맵과 마케팅 전략을 생성하는 애플리케이션입니다.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }
