@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import mammoth from 'mammoth';
-import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download, ShieldCheck, ClipboardList, Info, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, Sparkles, Send, CheckCircle2, AlertCircle, Loader2, Upload, FileText, X, Download, ShieldCheck, ClipboardList, Info, Eye, EyeOff, Copy, ExternalLink } from 'lucide-react';
 
 export default function App() {
   const [apiKey, setApiKey] = useState(() => {
@@ -23,9 +23,10 @@ export default function App() {
   // API Cost Tracking
   const [totalInputTokens, setTotalInputTokens] = useState(0);
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   // Patch notes "New" logic
-  const LAST_PATCH_DATE = new Date('2026-04-27');
+  const LAST_PATCH_DATE = new Date('2026-06-04');
   const isNewPatch = () => {
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - LAST_PATCH_DATE.getTime());
@@ -135,15 +136,21 @@ export default function App() {
       if (formData.details) prompt += `- 기타 세부사항: ${formData.details}\n`;
 
       prompt += `
-위 항목들을 심층적으로 분석하여 다음 두 가지를 아주 상세하고 전문적으로 작성해주세요:
-1. 수익화 준비를 위한 상세한 준비 로드맵 (단계별, 구체적인 실행 방안 포함)
-2. 타겟 고객 도달 및 수익 극대화를 위한 구체적이고 혁신적인 마케팅 전략
+상세 정보 및 첨부파일을 바탕으로, '수익화 발굴 기반'으로 현재 트렌드에 긴밀히 정합된 초정밀 딥리서치를 수행하여, 최대한 상세하고 방대한 분량의 미래 성장 결과물을 정밀하게 작성해주세요. 
 
-[출력 형식 및 제약사항 - 반드시 지켜주세요]
-1. 서론, 인사말, 안내사항("첨부해주신 파일은...", "2026년 트렌드는..." 등), 결론 등은 일절 작성하지 마세요. 오직 '상세 준비 로드맵'과 '마케팅 전략' 본문만 바로 시작하세요.
-2. 글에 '#', '*' 같은 마크다운 기호를 절대 사용하지 마세요. (소제목이나 목록 기호 대신 숫자나 일반 텍스트 기호를 사용하세요).
-3. 가독성을 위해 반드시 2줄(2문장)마다 한 번씩 줄바꿈(엔터 2번)을 하여 문단을 띄어주세요.
-4. 강조가 필요한 핵심 포인트는 HTML 태그를 사용하여 색상과 볼드를 적용하세요. (예: <b style="color: #4f46e5;">핵심 키워드</b>)
+중간 밑줄이나 가로선, 구분선 기호(예: ---, ___ 등)는 절대 사용하지 마세요.
+
+분석 결과는 아래의 두 가지 핵심 레이어에 대해 세밀하게 파헤쳐 기술되어야 합니다:
+1. 수익화 준비를 위한 상세한 준비 로드맵 (단계별 아주 세부적이고 구체적인 실행 방안 모두 기재)
+2. 타겟 고객 도달 및 수익 극대화, 장기적 락인을 이끌어내기 위한 구체적이고 혁신적인 마케팅 전략
+
+[출력 형식 및 제약사항 - 반드시 엄수해주세요]
+1. 정밀 딥리서치의 구체성과 밀도를 극대화하여 최고의 전문성을 가지고 아주 자세하게 설명하세요.
+2. 서론, 인사말, 안내사항("첨부해주신 파일은...", "2026년 트렌드는..." 등), 결론 등은 일절 작성하지 마세요. 오직 핵심 로드맵과 마케팅 전략의 본론 내용만 바로 기술하세요.
+3. 글에 '#', '*' 같은 마크다운 기호를 절대 사용하지 마세요 (소제목이나 목록 기호 대신 글머리 기호가 필요하다면 숫자나 일반 텍스트 기호만을 사용하세요).
+4. 글 중간이나 항목과 세션 사이에 가로선, 밑줄, 대시 구분선(예: ---, ___ 등)은 절대로 치지 마세요.
+5. 가독성을 극대화하기 위해 반드시 2줄(2문장)마다 한 번씩 줄바꿈(엔터 2번)을 적용하여 문단 간 간격을 띄어주세요.
+6. 강조가 필요한 핵심 포인트나 혁신 키워드, 수익화 중요 항목은 HTML 태그를 적극 사용하여 색상과 볼드를 강렬하게 적용하세요. (예: <b style="color: #FFCC00;">혁신 수익화 포인트</b>)
       `;
 
       const parts: any[] = [];
@@ -226,12 +233,6 @@ export default function App() {
       if (generatedText) {
         setOutput(generatedText);
         setProgress(100);
-        
-        // Auto download both files
-        setTimeout(() => {
-          downloadMD(generatedText);
-          downloadWord(generatedText);
-        }, 500);
       } else {
         setError('결과를 생성하지 못했습니다. 다시 시도해주세요.');
       }
@@ -257,22 +258,44 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadWord = (content: string = output) => {
-    const htmlContent = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="utf-8"></head>
-      <body>
-        ${content.replace(/\n/g, '<br>')}
-      </body>
-      </html>
-    `;
-    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '혁신 트렌드 분석 AI.doc';
-    a.click();
-    URL.revokeObjectURL(url);
+  const copyToDocs = async () => {
+    try {
+      // For Google Docs, we write both HTML format and plain text, so rich formatting carries over perfectly.
+      const formattedHtml = `
+        <div style="font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; color: #333333; background-color: #ffffff; padding: 10px;">
+          ${output
+            .replace(/\n/g, '<br>')
+            .replace(/<b style="color:\s*([^"]+)">/g, '<strong style="color: $1;">')
+            .replace(/<\/b>/g, '</strong>')}
+        </div>
+      `;
+      const plainText = output.replace(/<[^>]*>/g, '');
+
+      if (navigator.clipboard && window.ClipboardItem) {
+        const textBlob = new Blob([plainText], { type: 'text/plain' });
+        const htmlBlob = new Blob([formattedHtml], { type: 'text/html' });
+        const data = [
+          new ClipboardItem({
+            'text/plain': textBlob,
+            'text/html': htmlBlob
+          })
+        ];
+        await navigator.clipboard.write(data);
+      } else {
+        await navigator.clipboard.writeText(output);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Docs 복사 실패:', err);
+      try {
+        await navigator.clipboard.writeText(output);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (innerErr) {
+        console.error('Text fallback copy failed:', innerErr);
+      }
+    }
   };
 
   // Calculate cost (Gemini 1.5 Pro pricing approx)
@@ -672,20 +695,38 @@ export default function App() {
             {output ? (
               <div className="animate-in fade-in slide-in-from-bottom-6 duration-1000 flex flex-col h-full">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <button 
-                      onClick={() => downloadWord()}
+                      onClick={copyToDocs}
                       className="flex items-center gap-2 px-5 py-3 text-sm font-black text-black bg-[#D4AF37] hover:bg-[#FFCC00] rounded-xl transition-all uppercase italic"
                     >
-                      <Download className="w-4 h-4" />
-                      DOCX
+                      {copied ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 animate-bounce text-black" />
+                          Docs 복사 완료!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          Docs 복사하기
+                        </>
+                      )}
                     </button>
+                    <a 
+                      href="https://docs.google.com/document"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-5 py-3 text-sm font-black text-white bg-neutral-800 hover:bg-neutral-700 rounded-xl transition-all border border-neutral-700 uppercase italic"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Docs 바로가기
+                    </a>
                     <button 
                       onClick={() => downloadMD()}
-                      className="flex items-center gap-2 px-5 py-3 text-sm font-black text-white bg-neutral-800 hover:bg-neutral-700 rounded-xl transition-all uppercase italic"
+                      className="flex items-center gap-2 px-5 py-3 text-sm font-black text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl transition-all uppercase italic"
                     >
                       <Download className="w-4 h-4" />
-                      MARKDOWN
+                      MARKDOWN 다운로드
                     </button>
                   </div>
                   <div className="bg-[#E31837] text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest italic animate-pulse">
@@ -930,21 +971,42 @@ export default function App() {
             <div className="p-8 max-h-[60vh] overflow-y-auto space-y-8 scrollbar-hide">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.4.0 - Total System Optimization</h4>
-                  <span className="text-[10px] bg-[#E31837] text-white px-2 py-1 rounded font-bold italic">2026.04.27 [LATEST]</span>
+                  <h4 className="text-lg font-black text-[#D4AF37] italic">v1.5.0 - Docs Integration & Deep Research</h4>
+                  <span className="text-[10px] bg-[#E31837] text-white px-2 py-1 rounded font-bold italic">2026.06.04 [LATEST]</span>
                 </div>
                 <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4">
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#E31837] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[파일명 일원화]</span> 전략 리포트 다운로드 시 파일명을 "혁신 트렌드 분석 AI"로 공식화했습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[구글 Docs 최적화]</span> 생성된 혁신 전략 리포트를 서식 그대로 구글 Docs에 붙여넣을 수 있는 "Docs 복사하기" 기능과 Docs 바로가기를 추가하여 연동성을 향상했습니다.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#FFCC00] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[보안 라이브러리]</span> 범용 인증 코드 라이브러리를 최신화하여 다중 계층 보안을 강화했습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[정밀 딥리서치 튜닝]</span> 프레임워크가 실시간 대화형 수익 전략 리서치 엔진으로 진화하여, 가독성 저해 요소인 가로선 구분선 없이 대용량의 초고밀도 사업 분석이 가능해졌습니다.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] mt-2 shrink-0"></div>
-                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[UX 현지화]</span> 국내 비즈니스 환경에 맞춰 모든 인터페이스 명칭을 한글로 정밀 튜닝했습니다.</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed"><span className="text-white font-bold">[다운로드 오토메이션 배제]</span> 생성 완료 시 자동 다운로드되는 불필요한 현상을 차단하고, 수동으로 마크다운 리포트를 깔끔하게 다운받을 수 있도록 제어 구조를 정립했습니다.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-black text-neutral-500 italic">v1.4.0 - Total System Optimization</h4>
+                  <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-1 rounded font-bold">2026.04.27</span>
+                </div>
+                <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-neutral-800 space-y-4 opacity-60">
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-neutral-600 mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-400 leading-relaxed"><span className="text-neutral-300 font-bold">[파일명 일원화]</span> 전략 리포트 다운로드 시 파일명을 "혁신 트렌드 분석 AI"로 공식화했습니다.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-neutral-600 mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-400 leading-relaxed"><span className="text-white font-bold">[보안 라이브러리]</span> 범용 인증 코드 라이브러리를 최신화하여 다중 계층 보안을 강화했습니다.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-neutral-600 mt-2 shrink-0"></div>
+                    <p className="text-sm text-neutral-400 leading-relaxed"><span className="text-white font-bold">[UX 현지화]</span> 국내 비즈니스 환경에 맞춰 모든 인터페이스 명칭을 한글로 정밀 튜닝했습니다.</p>
                   </div>
                 </div>
               </div>
