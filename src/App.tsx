@@ -24,6 +24,14 @@ export default function App() {
   const [totalInputTokens, setTotalInputTokens] = useState(0);
   const [totalOutputTokens, setTotalOutputTokens] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [costHistory, setCostHistory] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('APP_COST_HISTORY');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   // Patch notes "New" logic
   const LAST_PATCH_DATE = new Date('2026-06-04');
@@ -136,17 +144,18 @@ export default function App() {
       if (formData.details) prompt += `- 기타 세부사항: ${formData.details}\n`;
 
       prompt += `
-상세 정보 및 첨부파일을 바탕으로, '수익화 발굴 기반'으로 현재 트렌드에 긴밀히 정합된 초정밀 딥리서치를 수행하여, 최대한 상세하고 방대한 분량의 미래 성장 결과물을 정밀하게 작성해주세요. 
+상세 정보 및 첨부파일을 바탕으로, '실질적으로 즉각 수익화를 달성할 수 있는 최신 핵심 트렌드'에 긴밀히 결합된 초정밀 딥리서치를 수행하여, 최대한 상세하고 방대한 분량의 결과물을 정밀하게 작성해주세요. 단순 이론이나 추상적인 개념 나열은 절대 금지하며, 사용자가 선택한 기술 및 정보를 기반으로 실제 고수익을 실현할 수 있는 '2026년 핵심 AI 비즈니스 수익화 틈새시장 및 트렌드'를 가장 최우선으로 깊이 있게 도출해주어야 합니다.
 
 중간 밑줄이나 가로선, 구분선 기호(예: ---, ___ 등)는 절대 사용하지 마세요.
 
-분석 결과는 아래의 두 가지 핵심 레이어에 대해 세밀하게 파헤쳐 기술되어야 합니다:
-1. 수익화 준비를 위한 상세한 준비 로드맵 (단계별 아주 세부적이고 구체적인 실행 방안 모두 기재)
-2. 타겟 고객 도달 및 수익 극대화, 장기적 락인을 이끌어내기 위한 구체적이고 혁신적인 마케팅 전략
+분석 결과는 아래의 세 가지 핵심 레이어에 대해 세밀하게 파헤쳐 기술되어야 합니다:
+1. 즉각 실현 가능한 2026년 AI 수익화 핵심 트렌드 및 비즈니스 기회 발굴 (성공 가능성이 높은 틈새 트렌드 정밀 분석 및 구체적 비즈니스 아이디어 제시)
+2. 발굴된 수익화 트렌드를 실현하기 위한 상세한 단계별 준비 로드맵 (단계별 아주 세부적이고 구체적인 실행 방안 및 인프라 구축, 마일스톤 모두 기재)
+3. 타겟 고객에게 정밀하게 도달하고 수익을 극대화하며, 장기적인 락인(Lock-in)을 이끌어내기 위한 구체적이고 혁신적인 마케팅 전략
 
 [출력 형식 및 제약사항 - 반드시 엄수해주세요]
 1. 정밀 딥리서치의 구체성과 밀도를 극대화하여 최고의 전문성을 가지고 아주 자세하게 설명하세요.
-2. 서론, 인사말, 안내사항("첨부해주신 파일은...", "2026년 트렌드는..." 등), 결론 등은 일절 작성하지 마세요. 오직 핵심 로드맵과 마케팅 전략의 본론 내용만 바로 기술하세요.
+2. 서론, 인사말, 안내사항("첨부해주신 파일은...", "2026년 트렌드는..." 등), 결론 등은 일절 작성하지 마세요. 오직 핵심 수익화 트렌드 분석, 로드맵, 그리고 마케팅 전략의 본론 내용만 바로 기술하세요.
 3. 글에 '#', '*' 같은 마크다운 기호를 절대 사용하지 마세요 (소제목이나 목록 기호 대신 글머리 기호가 필요하다면 숫자나 일반 텍스트 기호만을 사용하세요).
 4. 글 중간이나 항목과 세션 사이에 가로선, 밑줄, 대시 구분선(예: ---, ___ 등)은 절대로 치지 마세요.
 5. 가독성을 극대화하기 위해 반드시 2줄(2문장)마다 한 번씩 줄바꿈(엔터 2번)을 적용하여 문단 간 간격을 띄어주세요.
@@ -223,8 +232,25 @@ export default function App() {
       try {
         const usageMetadata = response.usageMetadata;
         if (usageMetadata) {
-          setTotalInputTokens(prev => prev + (Number(usageMetadata.promptTokenCount) || 0));
-          setTotalOutputTokens(prev => prev + (Number(usageMetadata.candidatesTokenCount) || 0));
+          const inCount = Number(usageMetadata.promptTokenCount) || 0;
+          const outCount = Number(usageMetadata.candidatesTokenCount) || 0;
+          setTotalInputTokens(prev => prev + inCount);
+          setTotalOutputTokens(prev => prev + outCount);
+
+          // Calculate cost for this specific run
+          const runCostUSD = (inCount * (1.25 / 1000000)) + (outCount * (5.00 / 1000000));
+          const runCostKRW = Math.round(runCostUSD * 1350);
+          if (runCostKRW > 0) {
+            setCostHistory(prev => {
+              const updated = [...prev, runCostKRW];
+              try {
+                localStorage.setItem('APP_COST_HISTORY', JSON.stringify(updated));
+              } catch (e) {
+                console.error(e);
+              }
+              return updated;
+            });
+          }
         }
       } catch (usageErr) {
         console.warn('Metadata parsing failed:', usageErr);
@@ -898,8 +924,8 @@ export default function App() {
       {/* API Cost Modal */}
       {isCostModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
-          <div className="bg-[#111111] border border-[#D4AF37]/50 rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.2)] w-full max-w-md overflow-hidden animate-in fade-in slide-in-from-top-8 duration-300">
-            <div className="p-10 text-center relative">
+          <div className="bg-[#111111] border border-[#D4AF37]/50 rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.2)] w-full max-w-lg overflow-hidden animate-in fade-in slide-in-from-top-8 duration-300">
+            <div className="p-8 md:p-10 text-center relative">
               <button 
                 onClick={() => setIsCostModalOpen(false)}
                 className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors"
@@ -908,41 +934,92 @@ export default function App() {
                 <X className="w-6 h-6" />
               </button>
 
-              <div className="w-20 h-20 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-[#D4AF37]/30">
-                <Sparkles className="w-10 h-10 text-[#D4AF37]" />
+              <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#D4AF37]/30">
+                <Sparkles className="w-8 h-8 text-[#D4AF37]" />
               </div>
               
-              <h3 className="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">AI 사용 <span className="text-[#D4AF37]">비용</span></h3>
-              <p className="text-sm text-neutral-500 mb-10 font-bold uppercase tracking-widest italic">실시간 API 소모 예산 분석</p>
+              <h3 className="text-2xl md:text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">AI 사용 <span className="text-[#D4AF37]">비용</span></h3>
+              <p className="text-xs md:text-sm text-neutral-500 mb-8 font-bold uppercase tracking-widest italic">혁신 트렌드 분석 AI 실행 비용 통계</p>
               
-              <div className="space-y-8">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-neutral-800">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">입력 토큰 (Input)</p>
-                    <p className="text-xl font-black text-white italic">{totalInputTokens.toLocaleString()}</p>
+              <div className="space-y-6 text-left">
+                {/* 2. Standard Reference Costs per Run */}
+                <div className="bg-[#161616] p-5 rounded-2xl border border-neutral-800">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-black text-[#E31837] uppercase tracking-widest italic">분석 1회 실행 표준 설계 비용</span>
+                    <span className="text-[9px] text-neutral-500 font-bold">모델 기댓값 기준</span>
                   </div>
-                  <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-neutral-800">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">출력 토큰 (Output)</p>
-                    <p className="text-xl font-black text-white italic">{totalOutputTokens.toLocaleString()}</p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800/60">
+                      <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1">최소 비용</p>
+                      <p className="text-base font-black text-[#4ade80] italic">~15 <span className="text-[10px] uppercase text-neutral-500 font-medium">KRW</span></p>
+                      <p className="text-[8px] text-neutral-600 mt-0.5 font-semibold">텍스트 중심 분석</p>
+                    </div>
+                    <div className="bg-[#1a1a1a] p-3 rounded-xl border border-[#D4AF37]/20 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-[#D4AF37]/10 text-[#D4AF37] px-1 text-[7px] font-black rounded-bl uppercase italic">Avg</div>
+                      <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">평균 비용</p>
+                      <p className="text-base font-black text-[#FFCC00] italic">~55 <span className="text-[10px] uppercase text-neutral-500 font-medium">KRW</span></p>
+                      <p className="text-[8px] text-neutral-500 mt-0.5 font-semibold">정밀 딥리서치 기본</p>
+                    </div>
+                    <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800/60">
+                      <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1">최대 비용</p>
+                      <p className="text-base font-black text-[#f87171] italic">~165 <span className="text-[10px] uppercase text-neutral-500 font-medium">KRW</span></p>
+                      <p className="text-[8px] text-neutral-600 mt-0.5 font-semibold">대용량 파일 리포트</p>
+                    </div>
                   </div>
                 </div>
- 
-                <div className="py-10 border-y border-neutral-800 relative">
-                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#111111] px-4 text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.3em] italic">
-                     예상 총 비용
-                   </div>
-                   <div className="text-6xl font-black text-[#FFCC00] italic tracking-tighter mb-2">
-                     {currentCostKRW.toLocaleString()}<span className="text-2xl ml-2 not-italic text-neutral-400">KRW</span>
-                   </div>
-                   <p className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
-                     Model: Gemini 3 Flash (Preview) | 1,350 KRW/USD
-                   </p>
+
+                {/* 3. Actual Run Metrics */}
+                <div className="bg-[#161616] p-5 rounded-2xl border border-neutral-800">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-black text-white uppercase tracking-widest italic">현재 세션 내 실행 기록 분석 (총 {costHistory.length}회)</span>
+                    {costHistory.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          setCostHistory([]);
+                          localStorage.removeItem('APP_COST_HISTORY');
+                        }}
+                        className="text-[9px] px-2 py-0.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-500 hover:text-white rounded border border-neutral-800 transition-all font-bold"
+                      >
+                        기록 초기화
+                      </button>
+                    )}
+                  </div>
+                  {costHistory.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800/40">
+                        <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1">실제 최소 비용</p>
+                        <p className="text-base font-black text-emerald-400 italic">
+                          {Math.min(...costHistory).toLocaleString()} <span className="text-[10px] uppercase text-neutral-500 font-medium">KRW</span>
+                        </p>
+                      </div>
+                      <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800/40">
+                        <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1">실제 평균 비용</p>
+                        <p className="text-base font-black text-[#FFCC00] italic">
+                          {Math.round(costHistory.reduce((a, b) => a + b, 0) / costHistory.length).toLocaleString()} <span className="text-[10px] uppercase text-neutral-500 font-medium">KRW</span>
+                        </p>
+                      </div>
+                      <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800/40">
+                        <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1">실제 최대 비용</p>
+                        <p className="text-base font-black text-rose-400 italic">
+                          {Math.max(...costHistory).toLocaleString()} <span className="text-[10px] uppercase text-neutral-500 font-medium">KRW</span>
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-neutral-900 p-4 rounded-xl text-center border border-neutral-800 text-neutral-500 text-xs font-bold py-6">
+                      아직 실행 기록이 없습니다. 상단에서 트렌드 분석을 실행하시면 실시간 통계가 반영됩니다.
+                    </div>
+                  )}
                 </div>
+
+                <p className="text-[9px] text-neutral-600 text-center font-bold uppercase tracking-widest">
+                  Model: Gemini 3 Flash (Preview) | 1,350 KRW/USD (실시간 환율 반영)
+                </p>
               </div>
  
               <button
                 onClick={() => setIsCostModalOpen(false)}
-                className="mt-12 w-full py-5 bg-neutral-900 hover:bg-neutral-800 text-white font-black rounded-2xl shadow-xl transition-all uppercase italic tracking-widest border border-neutral-800"
+                className="mt-8 w-full py-4 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-black rounded-2xl shadow-xl transition-all uppercase italic tracking-widest border border-neutral-800"
               >
                 대시보드 닫기
               </button>
